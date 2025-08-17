@@ -1,0 +1,105 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  googleId     String   @unique
+  email        String   @unique
+  name         String
+  picture      String?
+  refreshToken String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  notes        Note[]
+  eventLogs    EventLog[]
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  userId    String
+  videoId   String
+  text      String
+  tags      String[] // use array column in Postgres
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([videoId])
+}
+
+model EventLog {
+  id            String   @id @default(cuid())
+  ts            DateTime @default(now())
+  level         LogLevel @default(info)
+  event         String
+  source        LogSource @default(backend)
+
+  // actor/user
+  actorUserId   String?
+  actorEmail    String?
+
+  // traceability
+  sessionId     String?
+  correlationId String?
+
+  // targets
+  videoId       String?
+  commentId     String?
+  noteId        String?
+
+  // request/response
+  requestMethod String?
+  requestPath   String?
+  requestQuery  Json?
+  requestBody   Json?
+  requestHeaders Json?
+  responseStatus Int?
+  responseDurationMs Int?
+  responseErrorCode String?
+  responseErrorMessage String?
+
+  // env & context
+  userAgent     String?
+  ip            String?
+  appVersion    String?
+  nodeVersion   String?
+
+  // bag
+  metadata      Json?
+
+  user          User?    @relation(fields: [actorUserId], references: [id])
+
+  @@index([event])
+  @@index([actorUserId])
+  @@index([videoId])
+  @@index([correlationId])
+  @@index([ts])
+}
+
+enum LogLevel {
+  info
+  warn
+  error
+}
+
+enum LogSource {
+  backend
+  frontend
+  youtube
+}
