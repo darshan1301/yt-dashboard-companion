@@ -14,6 +14,7 @@ const router = Router();
  */
 router.post("/", async (req: Request, res: Response) => {
   const { videoId, text } = req.body || {};
+  console.log(videoId, text);
   const user = (req as any).user as { id: string } | undefined;
 
   if (!user?.id) return res.status(401).json({ error: "Unauthenticated" });

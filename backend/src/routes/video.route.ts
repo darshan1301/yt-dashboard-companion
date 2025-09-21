@@ -1,5 +1,6 @@
 import { Router, Request, Response } from "express";
 import {
+  fetchUploadedVideos,
   fetchVideoDetails,
   updateVideoTitleDescription,
 } from "../services/youtube.video";
@@ -53,6 +54,22 @@ router.patch("/:id", async (req: Request, res: Response) => {
     res
       .status(502)
       .json({ error: "YouTube update failed", detail: e?.message });
+  }
+});
+
+router.get("/", async (req, res) => {
+  try {
+    // assuming you have userId available on req.user
+    const userId = (req as any).user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized: missing userId" });
+    }
+
+    const videos = await fetchUploadedVideos(userId);
+    res.json(videos);
+  } catch (err: any) {
+    console.error("Error fetching uploaded videos:", err);
+    res.status(500).json({ error: err.message || "Failed to fetch videos" });
   }
 });
 

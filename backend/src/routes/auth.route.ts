@@ -27,7 +27,7 @@ router.get("/google/callback", async (req: Request, res: Response) => {
 
     // send user back to your frontend
     const dest = new URL(
-      "/auth/success",
+      "/dashboard",
       process.env.CLIENT_ORIGIN || "http://localhost:5173"
     );
     res.redirect(dest.toString());

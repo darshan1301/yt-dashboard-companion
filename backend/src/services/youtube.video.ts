@@ -21,13 +21,19 @@ export type VideoDetails = {
     commentCount?: number;
   };
   contentDetails: {
-    duration?: string; // ISO8601 e.g. PT4M20S
+    duration?: string;
     definition?: string;
     caption?: string;
   };
   publishedAt?: string;
 };
-
+export type UploadedVideo = {
+  id: string;
+  title: string;
+  description: string;
+  publishedAt?: string;
+  thumbnails: Record<string, { url: string; width?: number; height?: number }>;
+};
 export async function fetchVideoDetails(
   userId: string,
   videoId: string,
@@ -182,4 +188,39 @@ export async function updateVideoTitleDescription(
     title: updateRes.data.snippet?.title ?? newSnippet.title,
     description: updateRes.data.snippet?.description ?? newSnippet.description,
   };
+}
+
+export async function fetchUploadedVideos(userId: string) {
+  const auth = await getAuthorizedClientForUser(userId);
+  const youtube = google.youtube({ version: "v3", auth });
+
+  // 1) Get the channel uploads playlist ID
+  const channelRes = await youtube.channels.list({
+    part: ["contentDetails"],
+    mine: true,
+  });
+
+  const uploadsPlaylistId =
+    channelRes.data.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
+
+  if (!uploadsPlaylistId) {
+    throw new Error("No uploads playlist found for this user.");
+  }
+
+  // 2) Get videos from that playlist
+  const playlistRes = await youtube.playlistItems.list({
+    part: ["snippet", "contentDetails"],
+    playlistId: uploadsPlaylistId,
+    maxResults: 50,
+  });
+
+  return (
+    playlistRes.data.items?.map((item) => ({
+      id: item.contentDetails?.videoId,
+      title: item.snippet?.title,
+      description: item.snippet?.description,
+      publishedAt: item.snippet?.publishedAt,
+      thumbnails: item.snippet?.thumbnails,
+    })) ?? []
+  );
 }
