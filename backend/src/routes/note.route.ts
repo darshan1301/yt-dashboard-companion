@@ -13,7 +13,7 @@ const router = Router({ mergeParams: true });
  *   cursor  - note id for pagination
  */
 
-/** GET /api/videos/:videoId/notes */
+/** GET /api/notes/:videoId/notes */
 router.get("/", async (req: Request, res: Response) => {
   const user = (req as any).user as { id: string } | undefined;
   if (!user?.id) return res.status(401).json({ error: "Unauthenticated" });

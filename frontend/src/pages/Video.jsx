@@ -10,6 +10,7 @@ import {
   Reply,
 } from "lucide-react";
 import { baseUrl as BASE_URL } from "../config";
+import Notes from "../component/Notes";
 
 export default function VideoDetail() {
   const { id } = useParams();
@@ -178,6 +179,8 @@ export default function VideoDetail() {
           </div>
         </div>
 
+        <Notes videoId={id} />
+
         {/* Comments */}
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
@@ -207,14 +210,46 @@ export default function VideoDetail() {
             {comments.map((c) => (
               <div key={c.id} className="border rounded p-3">
                 <p className="text-gray-800">{c.text}</p>
-                <button
-                  onClick={() =>
-                    setReplyingTo(replyingTo === c.id ? null : c.id)
-                  }
-                  className="mt-2 text-sm text-blue-600 flex items-center gap-1 hover:underline">
-                  <Reply className="w-4 h-4" />
-                  Reply
-                </button>
+                <p className="text-gray-800">{c.text}</p>
+
+                <div className="mt-2 flex gap-4">
+                  <button
+                    onClick={() =>
+                      setReplyingTo(replyingTo === c.id ? null : c.id)
+                    }
+                    className="text-sm text-blue-600 flex items-center gap-1 hover:underline">
+                    <Reply className="w-4 h-4" />
+                    Reply
+                  </button>
+
+                  <button
+                    onClick={async () => {
+                      try {
+                        const res = await fetch(
+                          `${BASE_URL}/api/comments/${c.id}`,
+                          {
+                            method: "DELETE",
+                            credentials: "include",
+                          }
+                        );
+                        if (res.ok) {
+                          setComments((prev) =>
+                            prev.filter((com) => com.id !== c.id)
+                          );
+                        } else {
+                          console.error(
+                            "Failed to delete comment:",
+                            await res.json()
+                          );
+                        }
+                      } catch (err) {
+                        console.error("Error deleting comment:", err);
+                      }
+                    }}
+                    className="text-sm text-red-600 hover:underline">
+                    Delete
+                  </button>
+                </div>
 
                 {/* Reply box */}
                 {replyingTo === c.id && (
