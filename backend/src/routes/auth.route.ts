@@ -17,11 +17,14 @@ router.get("/google/callback", async (req: Request, res: Response) => {
   try {
     const { user } = await exchangeCodeForUser(code);
     const token = signSession(user.id);
+    console.log("CLIENT", process.env.CLIENT_ORIGIN);
 
     res.cookie("sid", token, {
       httpOnly: true,
       sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      secure:
+        process.env.NODE_ENV === "development" ||
+        process.env.NODE_ENV === "production",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
