@@ -26,28 +26,32 @@ export async function addTopLevelComment(
       },
     });
 
-    await logEvent?.({
-      event: "YOUTUBE_API_CALL",
-      source: "youtube",
-      correlationId,
-      target: { videoId },
-      metadata: { api: "commentThreads.insert" },
-      response: { status: 200, durationMs: Date.now() - started },
-    });
+    Promise.resolve().then(() =>
+      logEvent?.({
+        event: "YOUTUBE_API_CALL",
+        source: "youtube",
+        correlationId,
+        target: { videoId },
+        metadata: { api: "commentThreads.insert" },
+        response: { status: 200, durationMs: Date.now() - started },
+      })
+    );
 
     const thread = res.data;
     const commentId = thread?.snippet?.topLevelComment?.id || thread?.id;
-    return { threadId: thread?.id, commentId };
+    return { threadId: thread?.id, comment: thread.snippet?.topLevelComment };
   } catch (err: any) {
-    await logEvent?.({
-      level: "error",
-      event: "YOUTUBE_API_CALL",
-      source: "youtube",
-      correlationId,
-      target: { videoId },
-      metadata: { api: "commentThreads.insert" },
-      response: { status: err?.code || 500, errorMessage: err?.message },
-    });
+    Promise.resolve().then(() =>
+      logEvent?.({
+        level: "error",
+        event: "YOUTUBE_API_CALL",
+        source: "youtube",
+        correlationId,
+        target: { videoId },
+        metadata: { api: "commentThreads.insert" },
+        response: { status: err?.code || 500, errorMessage: err?.message },
+      })
+    );
     throw err;
   }
 }
@@ -74,25 +78,29 @@ export async function replyToComment(
       },
     });
 
-    await logEvent?.({
-      event: "YOUTUBE_API_CALL",
-      source: "youtube",
-      correlationId,
-      target: { commentId: parentCommentId },
-      metadata: { api: "comments.insert" },
-      response: { status: 200, durationMs: Date.now() - started },
+    Promise.resolve().then(() => {
+      logEvent?.({
+        event: "YOUTUBE_API_CALL",
+        source: "youtube",
+        correlationId,
+        target: { commentId: parentCommentId },
+        metadata: { api: "comments.insert" },
+        response: { status: 200, durationMs: Date.now() - started },
+      });
     });
 
-    return { replyId: res.data.id };
+    return { reply: res.data };
   } catch (err: any) {
-    await logEvent?.({
-      level: "error",
-      event: "YOUTUBE_API_CALL",
-      source: "youtube",
-      correlationId,
-      target: { commentId: parentCommentId },
-      metadata: { api: "comments.insert" },
-      response: { status: err?.code || 500, errorMessage: err?.message },
+    Promise.resolve().then(() => {
+      logEvent?.({
+        level: "error",
+        event: "YOUTUBE_API_CALL",
+        source: "youtube",
+        correlationId,
+        target: { commentId: parentCommentId },
+        metadata: { api: "comments.insert" },
+        response: { status: err?.code || 500, errorMessage: err?.message },
+      });
     });
     throw err;
   }
@@ -109,26 +117,86 @@ export async function deleteComment(
   const started = Date.now();
   try {
     await youtube.comments.delete({ id: commentId });
-
-    await logEvent?.({
-      event: "YOUTUBE_API_CALL",
-      source: "youtube",
-      correlationId,
-      target: { commentId },
-      metadata: { api: "comments.delete" },
-      response: { status: 204, durationMs: Date.now() - started },
+    Promise.resolve().then(() => {
+      logEvent?.({
+        event: "YOUTUBE_API_CALL",
+        source: "youtube",
+        correlationId,
+        target: { commentId },
+        metadata: { api: "comments.delete" },
+        response: { status: 204, durationMs: Date.now() - started },
+      });
     });
 
     return { ok: true };
   } catch (err: any) {
-    await logEvent?.({
-      level: "error",
-      event: "YOUTUBE_API_CALL",
-      source: "youtube",
-      correlationId,
-      target: { commentId },
-      metadata: { api: "comments.delete" },
-      response: { status: err?.code || 500, errorMessage: err?.message },
+    Promise.resolve().then(() => {
+      logEvent?.({
+        level: "error",
+        event: "YOUTUBE_API_CALL",
+        source: "youtube",
+        correlationId,
+        target: { commentId },
+        metadata: { api: "comments.delete" },
+        response: { status: err?.code || 500, errorMessage: err?.message },
+      });
+    });
+    throw err;
+  }
+}
+
+export async function getCommentsByVideoId(
+  videoId: string,
+  userId?: string,
+  correlationId?: string
+) {
+  // If a userId is provided we use their authorized client (may increase quota/privileges),
+  // otherwise use an unauthenticated client for public data.
+  const auth = userId
+    ? await getAuthorizedClientForUser(userId, correlationId)
+    : undefined;
+  const youtube = google.youtube({ version: "v3", auth });
+
+  const started = Date.now();
+  try {
+    const items: any[] = [];
+    let nextPageToken: string | undefined = undefined;
+
+    // paginate through commentThreads.list to collect all top-level comments (and optional replies)
+    const res = await youtube.commentThreads.list({
+      part: ["snippet", "replies"],
+      videoId,
+      maxResults: 100,
+      pageToken: nextPageToken,
+    } as any);
+
+    if (res.data?.items) {
+      items.push(...res.data.items);
+    }
+    nextPageToken = res.data?.nextPageToken as string | undefined;
+    Promise.resolve().then(() => {
+      logEvent?.({
+        event: "YOUTUBE_API_CALL",
+        source: "youtube",
+        correlationId,
+        target: { videoId },
+        metadata: { api: "commentThreads.list" },
+        response: { status: 200, durationMs: Date.now() - started },
+      });
+    });
+
+    return { items, count: items.length };
+  } catch (err: any) {
+    Promise.resolve().then(() => {
+      logEvent?.({
+        level: "error",
+        event: "YOUTUBE_API_CALL",
+        source: "youtube",
+        correlationId,
+        target: { videoId },
+        metadata: { api: "commentThreads.list" },
+        response: { status: err?.code || 500, errorMessage: err?.message },
+      });
     });
     throw err;
   }

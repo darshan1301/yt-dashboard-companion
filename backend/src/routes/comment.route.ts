@@ -3,7 +3,9 @@ import {
   addTopLevelComment,
   replyToComment,
   deleteComment,
+  getCommentsByVideoId,
 } from "../services/youtube.comments";
+import { error } from "node:console";
 
 const router = Router();
 
@@ -30,6 +32,8 @@ router.post("/", async (req: Request, res: Response) => {
     );
     return res.status(201).json(result);
   } catch (e: any) {
+    console.error(e);
+
     return res
       .status(502)
       .json({ error: "Failed to create comment", detail: e?.message });
@@ -85,6 +89,24 @@ router.delete("/:commentId", async (req: Request, res: Response) => {
     return res
       .status(502)
       .json({ error: "Failed to delete comment", detail: e?.message });
+  }
+});
+
+///GET COMMENTS
+router.get("/:videoId", async (req: Request, res: Response) => {
+  const { videoId } = req.params;
+  const user = (req as any).user as { id: string } | undefined;
+
+  if (!user?.id) return res.status(401).json({ error: "Unauthenticated" });
+  if (!videoId) return res.status(400).json({ error: "commentId is required" });
+
+  try {
+    const data = await getCommentsByVideoId(videoId, user.id);
+    return res.status(200).json(data);
+  } catch (e: any) {
+    return res
+      .status(502)
+      .json({ error: "Failed to fetch comments ", detail: e?.message });
   }
 });
 

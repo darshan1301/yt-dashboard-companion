@@ -13,8 +13,8 @@ export async function authGuard(
   res: Response,
   next: NextFunction
 ) {
-  console.log("AUTHGUARD");
   const token = req.cookies?.sid;
+  console.log("AUTHGUARD");
   if (!token) return res.status(401).json({ error: "Unauthenticated" });
 
   try {

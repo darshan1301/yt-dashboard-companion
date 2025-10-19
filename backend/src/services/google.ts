@@ -21,7 +21,7 @@ const SCOPES = [
   "email",
   "profile",
   // include YouTube scopes now so you won't need to re-consent later
-  "https://www.googleapis.com/auth/youtube.readonly",
+  // "https://www.googleapis.com/auth/youtube",
   "https://www.googleapis.com/auth/youtube.force-ssl",
 ];
 
@@ -53,6 +53,7 @@ export async function exchangeCodeForUser(code: string) {
       name: profile.name,
       picture: profile.picture ?? undefined,
       refreshToken: tokens.refresh_token ?? undefined,
+      accessToken: tokens.access_token,
     },
     create: {
       googleId: profile.id,
@@ -60,6 +61,7 @@ export async function exchangeCodeForUser(code: string) {
       name: profile.name!,
       picture: profile.picture ?? undefined,
       refreshToken: tokens.refresh_token ?? undefined,
+      accessToken: tokens.access_token,
     },
   });
 

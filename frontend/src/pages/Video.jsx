@@ -1,16 +1,9 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import {
-  ArrowLeft,
-  Eye,
-  Heart,
-  MessageCircle,
-  Save,
-  Send,
-  Reply,
-} from "lucide-react";
+import { ArrowLeft, Save } from "lucide-react";
 import { baseUrl as BASE_URL } from "../config";
 import Notes from "../component/Notes";
+import YouTubeComments from "../component/YoutubeComments";
 
 export default function VideoDetail() {
   const { id } = useParams();
@@ -23,12 +16,6 @@ export default function VideoDetail() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
-
-  // comments state
-  const [comments, setComments] = useState([]);
-  const [newComment, setNewComment] = useState("");
-  const [replyText, setReplyText] = useState("");
-  const [replyingTo, setReplyingTo] = useState(null);
 
   const fetchVideo = async () => {
     try {
@@ -70,56 +57,8 @@ export default function VideoDetail() {
     }
   };
 
-  // 🔹 Add top-level comment
-  const handleAddComment = async () => {
-    if (!newComment.trim()) return;
-    try {
-      const res = await fetch(`${BASE_URL}/api/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ videoId: id, text: newComment }),
-      });
-      if (res.ok) {
-        const created = await res.json();
-        setComments((prev) => [...prev, created]);
-        setNewComment("");
-      }
-    } catch (err) {
-      console.error("Error adding comment:", err);
-    }
-  };
-
-  // 🔹 Reply to a comment
-  const handleReply = async (parentCommentId) => {
-    if (!replyText.trim()) return;
-    try {
-      const res = await fetch(`${BASE_URL}/api/comments/reply`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ parentCommentId, text: replyText }),
-      });
-      if (res.ok) {
-        const reply = await res.json();
-        setComments((prev) =>
-          prev.map((c) =>
-            c.id === parentCommentId
-              ? { ...c, replies: [...(c.replies || []), reply] }
-              : c
-          )
-        );
-        setReplyText("");
-        setReplyingTo(null);
-      }
-    } catch (err) {
-      console.error("Error replying to comment:", err);
-    }
-  };
-
   useEffect(() => {
     fetchVideo();
-    // optionally: fetch existing comments if you expose them in your backend
   }, [id]);
 
   if (loading) {
@@ -182,107 +121,7 @@ export default function VideoDetail() {
         <Notes videoId={id} />
 
         {/* Comments */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <MessageCircle className="w-5 h-5" />
-            Comments
-          </h2>
-
-          {/* Add comment box */}
-          <div className="flex gap-2 mb-6">
-            <input
-              type="text"
-              placeholder="Write a comment..."
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              className="flex-grow border rounded px-3 py-2"
-            />
-            <button
-              onClick={handleAddComment}
-              className="px-4 py-2 bg-green-600 text-white rounded flex items-center gap-2 hover:bg-green-700">
-              <Send className="w-4 h-4" />
-              Post
-            </button>
-          </div>
-
-          {/* Comments list */}
-          <div className="space-y-4">
-            {comments.map((c) => (
-              <div key={c.id} className="border rounded p-3">
-                <p className="text-gray-800">{c.text}</p>
-                <p className="text-gray-800">{c.text}</p>
-
-                <div className="mt-2 flex gap-4">
-                  <button
-                    onClick={() =>
-                      setReplyingTo(replyingTo === c.id ? null : c.id)
-                    }
-                    className="text-sm text-blue-600 flex items-center gap-1 hover:underline">
-                    <Reply className="w-4 h-4" />
-                    Reply
-                  </button>
-
-                  <button
-                    onClick={async () => {
-                      try {
-                        const res = await fetch(
-                          `${BASE_URL}/api/comments/${c.id}`,
-                          {
-                            method: "DELETE",
-                            credentials: "include",
-                          }
-                        );
-                        if (res.ok) {
-                          setComments((prev) =>
-                            prev.filter((com) => com.id !== c.id)
-                          );
-                        } else {
-                          console.error(
-                            "Failed to delete comment:",
-                            await res.json()
-                          );
-                        }
-                      } catch (err) {
-                        console.error("Error deleting comment:", err);
-                      }
-                    }}
-                    className="text-sm text-red-600 hover:underline">
-                    Delete
-                  </button>
-                </div>
-
-                {/* Reply box */}
-                {replyingTo === c.id && (
-                  <div className="mt-2 flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Write a reply..."
-                      value={replyText}
-                      onChange={(e) => setReplyText(e.target.value)}
-                      className="flex-grow border rounded px-3 py-2"
-                    />
-                    <button
-                      onClick={() => handleReply(c.id)}
-                      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                      Send
-                    </button>
-                  </div>
-                )}
-
-                {/* Show replies */}
-                {c.replies?.length > 0 && (
-                  <div className="mt-3 ml-6 space-y-2">
-                    {c.replies.map((r) => (
-                      <p key={r.id} className="text-sm text-gray-600">
-                        ↳ {r.text}
-                      </p>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
+        <YouTubeComments videoId={id} />
       </main>
     </div>
   );

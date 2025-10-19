@@ -11,7 +11,7 @@ import { requestLogger } from "./middleware/requestLogger";
 import morgan from "morgan";
 
 const {
-  PORT = "5000",
+  PORT = process.env.PORT || "5000",
   CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || "http://localhost:5173",
   NODE_ENV = "development",
 } = process.env;

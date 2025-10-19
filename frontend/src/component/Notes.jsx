@@ -27,8 +27,6 @@ export default function Notes({ videoId }) {
     }
   };
 
-  console.log(notes);
-
   // 🔹 Add new note
   const addNote = async () => {
     if (!newNote.trim()) return;
