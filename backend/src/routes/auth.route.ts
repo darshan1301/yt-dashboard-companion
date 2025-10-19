@@ -20,11 +20,11 @@ router.get("/google/callback", async (req: Request, res: Response) => {
 
     res.cookie("sid", token, {
       httpOnly: true,
-      sameSite: "lax",
-      secure:
-        process.env.NODE_ENV === "development" ||
-        process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      secure: process.env.NODE_ENV === "production", // Must be true for SameSite=none
       maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: "/",
+      // domain: ".yourdomain.com" // Only if using subdomains
     });
 
     // send user back to your frontend

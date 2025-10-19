@@ -24,7 +24,7 @@ app.use(morgan("dev"));
 app.set("trust proxy", 1);
 app.use(
   cors({
-    origin: CLIENT_ORIGIN,
+    origin: [CLIENT_ORIGIN],
     credentials: true,
   })
 );
