@@ -1,17 +1,8 @@
 import { Router, Request, Response } from "express";
 import { prisma } from "../db/prisma";
+import { Prisma } from "../../generated/prisma";
 
 const router = Router({ mergeParams: true });
-
-/**
- * All routes expect :videoId in the path and are user-scoped.
- * Optional query:
- *   search  - case-insensitive contains on text
- *   tags    - comma-separated list, e.g. "hook,thumbnail"
- *   match   - "any" (default) | "all" for tag matching
- *   take    - page size (default 20, max 100)
- *   cursor  - note id for pagination
- */
 
 /** GET /api/notes/:videoId/notes */
 router.get("/", async (req: Request, res: Response) => {
@@ -174,6 +165,55 @@ router.get("/tags/list", async (req: Request, res: Response) => {
     .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
 
   res.json({ tags });
+});
+
+router.get("/search", async (req: Request, res: Response) => {
+  const user = (req as any).user as { id: string } | undefined;
+
+  if (!user?.id) {
+    return res.status(401).json({ error: "Unauthenticated" });
+  }
+
+  try {
+    const { q } = req.query;
+
+    // Build where clause
+    const where: Prisma.NoteWhereInput = {
+      userId: user.id,
+    };
+
+    // Text search (case-insensitive partial match)
+    if (q && typeof q === "string" && q.trim()) {
+      where.text = {
+        contains: q.trim(),
+        mode: "insensitive",
+      };
+    }
+
+    // Get notes sorted by latest first
+    const notes = await prisma.note.findMany({
+      where,
+      orderBy: {
+        createdAt: "desc",
+      },
+      select: {
+        id: true,
+        videoId: true,
+        text: true,
+        tags: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    return res.status(200).json({ notes });
+  } catch (error: any) {
+    console.error("Error searching notes:", error);
+    return res.status(500).json({
+      error: "Failed to search notes",
+      detail: error?.message,
+    });
+  }
 });
 
 export default router;
